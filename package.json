@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "postinstall": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/",
+    "postinstall": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/ && prisma generate",
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "prisma generate && next build",
+    "start": "next start -p $PORT",
     "lint": "next lint"
   },
   "dependencies": {
@@ -33,6 +33,7 @@
     "@prisma/client": "^6.7.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.0",
+    "pm2": "^6.0.6",
     "prisma": "^6.7.0"
   }
 }
