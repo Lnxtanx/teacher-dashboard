@@ -21,7 +21,7 @@ const LessonLog = () => {
   const [error, setError] = useState(null);
   
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('Physical Training'); // Default subject
+  const [selectedSubject, setSelectedSubject] = useState('Physical Education'); // Default subject
   const [selectedLesson, setSelectedLesson] = useState('');
   
   useEffect(() => {

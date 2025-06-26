@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         // Insert a system message about identity by adding it as the first message
         messages.unshift({
           role: 'model',
-          parts: [{ text: "I am Resona, an AI assistant here to help you. I'll do my best to provide helpful and accurate information." }]
+          parts: [{ text: "I am Ekagrata, an AI assistant here to help you. I'll do my best to provide helpful and accurate information." }]
         });
       }
       
@@ -118,8 +118,8 @@ export default async function handler(req, res) {
 
       // Ensure Resona introduces itself if the response doesn't include the name
       if ((!history || history.length <= 1) && 
-          !responseText.toLowerCase().includes('resona')) {
-        responseText = "I'm Resona. " + responseText;
+          !responseText.toLowerCase().includes('ekagrata')) {
+        responseText = "I'm Ekagrata. " + responseText;
       }
 
       // Return the response to the frontend

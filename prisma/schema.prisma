@@ -9,9 +9,7 @@ datasource db {
 
 model Class {
   id        Int         @id @default(autoincrement())
-  name      String      @db.VarChar
-  schoolId  Int
-  schools   schools     @relation(fields: [schoolId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_class_school")
+  name      String      @unique @db.VarChar
   LessonLog LessonLog[]
   LessonPdf LessonPdf[]
 }
@@ -74,9 +72,14 @@ model LessonPdf {
   lessonName      String   @db.VarChar
   pdfUrl          String
   schoolId        Int?
-  isForAllSchools Boolean? @default(false)
+  isForAllSchools Boolean  @default(false)
+  createdAt       DateTime @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime @default(now()) @db.Timestamp(6)
   Class           Class    @relation(fields: [classId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_lessonpdf_class")
   schools         schools? @relation(fields: [schoolId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_lessonpdf_school")
+
+  @@index([classId])
+  @@index([schoolId])
 }
 
 model schools {
@@ -87,7 +90,6 @@ model schools {
   createdAt        DateTime           @default(now()) @db.Timestamp(6)
   updatedAt        DateTime           @db.Timestamp(6)
   isActive         Boolean            @default(true)
-  Class            Class[]
   ClassResponse    ClassResponse[]
   EventApplication EventApplication[]
   LeaveApplication LeaveApplication[]

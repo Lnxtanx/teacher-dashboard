@@ -42,11 +42,10 @@ export default async function handler(req, res) {
         message: 'Invalid ID format'
       });
     }
-    
-    // Fetch all classes for this school
+      // Fetch all classes (no longer school-specific)
     const classes = await prisma.class.findMany({
-      where: {
-        schoolId: schoolId
+      orderBy: {
+        name: 'asc'
       },
       orderBy: { 
         name: 'asc' 

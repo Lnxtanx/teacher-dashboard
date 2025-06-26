@@ -23,16 +23,14 @@ export default async function handler(req, res) {
     }
 
     const schoolId = Number(decoded.schoolId);
-    const { page = 1, limit = 10 } = req.query;
-
-    const [announcements, total] = await Promise.all([
+    const { page = 1, limit = 10 } = req.query;    const [announcements, total] = await Promise.all([
       prisma.announcement.findMany({
-        where: { schoolId },
-        orderBy: { createdAt: 'desc' },
+        where: { school_id: schoolId },
+        orderBy: { date: 'desc' },
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
       }),
-      prisma.announcement.count({ where: { schoolId } }),
+      prisma.announcement.count({ where: { school_id: schoolId } }),
     ]);
 
     return res.status(200).json({
