@@ -6,7 +6,7 @@
     "postinstall": "powershell -Command Copy-Item node_modules\\pdfjs-dist\\build\\pdf.worker.min.mjs public\\ && prisma generate",
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "start": "next start -p $PORT",
+    "start": "next start -p 3002",
     "lint": "next lint"
   },
   "dependencies": {
