@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Script from 'next/script';
 import { 
   IconHome, 
   IconCalendar, 
@@ -13,6 +15,7 @@ import {
   IconChevronLeft
 } from '../../component/icons/1';
 import dynamic from 'next/dynamic';
+import { getNavItems } from '../../component/navItems';
 
 // make a pdf container component that  fetch pdf from aws s3 and which is store in lesson-pdf url  intable
 // Dynamically import the PDFViewer component to avoid SSR issues
@@ -50,87 +53,73 @@ const LessonLogViewPage = () => {
   const [lessonName, setLessonName] = useState('');
   
   useEffect(() => {
-    // Only fetch when we have the required parameters
     if (classId && lessonId) {
+      const fetchLessonPdf = async () => {
+        try {
+          setLoading(true);
+          const token = localStorage.getItem('token');
+          if (!token) {
+            router.push('/login');
+            return;
+          }
+          const response = await fetch(`/api/lesson/getpdf?lessonId=${lessonId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (!response.ok) {
+            if (response.status === 401) {
+              localStorage.removeItem('token');
+              router.push('/login');
+              return;
+            }
+            let errorMessage = `Failed to fetch lesson PDF: ${response.status}`;
+            try {
+              const errorData = await response.json();
+              if (errorData && errorData.message) {
+                errorMessage = `${errorMessage} - ${errorData.message}`;
+              }
+            } catch (jsonError) {
+              // Ignore JSON parsing errors
+            }
+            throw new Error(errorMessage);
+          }
+          const data = await response.json();
+          if (data.success && data.data) {
+            setLessonData(data.data);
+            setLessonName(data.data.lessonName || 'Untitled Lesson');
+          } else {
+            throw new Error(data.message || 'No lesson data found');
+          }
+        } catch (err) {
+          console.error('Error fetching lesson PDF:', err);
+          setError(err.message || 'Failed to load lesson PDF');
+        } finally {
+          setLoading(false);
+        }
+      };
+      const fetchClassName = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`/api/class/get1?classId=${classId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              setClassName(data.data.name);
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching class name:', err);
+        }
+      };
       fetchLessonPdf();
       fetchClassName();
     }
-  }, [classId, lessonId]);
-  
-  // Updated fetchLessonPdf function with better error handling
-  const fetchLessonPdf = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-      
-      console.log(`Fetching lesson PDF for lessonId: ${lessonId}`);
-      
-      const response = await fetch(`/api/lesson/getpdf?lessonId=${lessonId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('token');
-          router.push('/login');
-          return;
-        }
-        
-        // Try to get more error information from the response
-        let errorMessage = `Failed to fetch lesson PDF: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          if (errorData && errorData.message) {
-            errorMessage = `${errorMessage} - ${errorData.message}`;
-          }
-        } catch (jsonError) {
-          // Ignore JSON parsing errors, use default message
-          console.warn('Could not parse error response as JSON');
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      if (data.success && data.data) {
-        setLessonData(data.data);
-        setLessonName(data.data.lessonName || 'Untitled Lesson');
-      } else {
-        throw new Error(data.message || 'No lesson data found');
-      }
-    } catch (err) {
-      console.error('Error fetching lesson PDF:', err);
-      setError(err.message || 'Failed to load lesson PDF');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const fetchClassName = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/class/get1?classId=${classId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          setClassName(data.data.name);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching class name:', err);
-    }
-  };
+  }, [router, classId, lessonId]);
 
   const handleCompleteClass = () => {
     // Navigate to completion page
@@ -144,33 +133,24 @@ const LessonLogViewPage = () => {
     });
   };
 
-  const navItems = [
-    { name: 'Home', icon: <IconHome />, path: '/dashboard/dashboard', active: false },
-    { name: 'Timetable', icon: <IconCalendar />, path: '/dashboard/time-table', active: false },
-    { name: 'Take Class', icon: <IconTeach />, path: '/lesson-log/1', active: true },
-    { name: 'Class Records', icon: <IconRecords />, path: '/class-response/class-completed', active: false },
-    { name: 'Event Planner', icon: <IconEvent />, path: '/event-leave/event-dashboard', active: false },
-    { name: 'Leave Records', icon: <IconLeave />, path: '/event-leave/leave-dashboard', active: false },
-    { name: 'Ekagrata AI', icon: <IconAI />, path: '/dashboard/chatbot/chatbot', active: false },
-  ];
+  const navItems = getNavItems('take-class');
 
   return (
     <>
       <Head>
         <title>View Lesson | Teacher Portal</title>
-        {/* Add PDF.js CDN link */}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-        <script>
-          {/* Set the worker source */}
-          {`
-            if (typeof window !== 'undefined') {
-              window.pdfjsLib = window.pdfjsLib || {};
-              window.pdfjsLib.GlobalWorkerOptions = window.pdfjsLib.GlobalWorkerOptions || {};
-              window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-            }
-          `}
-        </script>
       </Head>
+      {/* Add PDF.js CDN link using next/script */}
+      <Script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js" strategy="afterInteractive" />
+      <Script id="set-pdfjs-worker" strategy="afterInteractive">
+        {`
+          if (typeof window !== 'undefined') {
+            window.pdfjsLib = window.pdfjsLib || {};
+            window.pdfjsLib.GlobalWorkerOptions = window.pdfjsLib.GlobalWorkerOptions || {};
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+          }
+        `}
+      </Script>
 
       <div style={styles.mainContainer}>
         {/* Side Navigation - Fixed */}
@@ -195,13 +175,12 @@ const LessonLogViewPage = () => {
           </nav>
           {/* Profile at the bottom */}
           <div style={styles.profileSection}>
-            <a 
-              href="/dashboard/profile" 
-              style={styles.profileLink}
-            >
-              <span style={styles.navIcon}><IconUser /></span>
-              Profile
-            </a>
+            <Link href="/dashboard/profile" legacyBehavior>
+              <a style={styles.profileLink}>
+                <span style={styles.navIcon}><IconUser /></span>
+                Profile
+              </a>
+            </Link>
           </div>
         </div>
 
@@ -247,7 +226,53 @@ const LessonLogViewPage = () => {
                   <div style={styles.errorContainer}>
                     <p style={styles.errorText}>{error}</p>
                     <button 
-                      onClick={fetchLessonPdf} 
+                      onClick={() => {
+                        const fetchLessonPdf = async () => {
+                          try {
+                            setLoading(true);
+                            const token = localStorage.getItem('token');
+                            if (!token) {
+                              router.push('/login');
+                              return;
+                            }
+                            const response = await fetch(`/api/lesson/getpdf?lessonId=${lessonId}`, {
+                              headers: {
+                                'Authorization': `Bearer ${token}`
+                              }
+                            });
+                            if (!response.ok) {
+                              if (response.status === 401) {
+                                localStorage.removeItem('token');
+                                router.push('/login');
+                                return;
+                              }
+                              let errorMessage = `Failed to fetch lesson PDF: ${response.status}`;
+                              try {
+                                const errorData = await response.json();
+                                if (errorData && errorData.message) {
+                                  errorMessage = `${errorMessage} - ${errorData.message}`;
+                                }
+                              } catch (jsonError) {
+                                // Ignore JSON parsing errors
+                              }
+                              throw new Error(errorMessage);
+                            }
+                            const data = await response.json();
+                            if (data.success && data.data) {
+                              setLessonData(data.data);
+                              setLessonName(data.data.lessonName || 'Untitled Lesson');
+                            } else {
+                              throw new Error(data.message || 'No lesson data found');
+                            }
+                          } catch (err) {
+                            console.error('Error fetching lesson PDF:', err);
+                            setError(err.message || 'Failed to load lesson PDF');
+                          } finally {
+                            setLoading(false);
+                          }
+                        };
+                        fetchLessonPdf();
+                      }} 
                       style={styles.retryButton}
                     >
                       Try Again

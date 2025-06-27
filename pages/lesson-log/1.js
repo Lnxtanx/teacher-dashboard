@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { getNavItems } from '../../component/navItems';
 import { 
   IconHome, 
   IconCalendar, 
@@ -24,46 +26,44 @@ const LessonLog = () => {
   const [selectedSubject, setSelectedSubject] = useState('Physical Education'); // Default subject
   const [selectedLesson, setSelectedLesson] = useState('');
   
+  const navItems = getNavItems('take-class');
+  
   useEffect(() => {
-    // Check if we're in the browser environment before accessing localStorage
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       if (!token) {
         router.push('/login');
         return;
       }
+      const fetchClasses = async (token) => {
+        try {
+          setLoading(true);
+          const response = await fetch('/api/class/get1', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (!response.ok) {
+            if (response.status === 401) {
+              localStorage.removeItem('token');
+              router.push('/login');
+              return;
+            }
+            throw new Error(`Failed to fetch classes: ${response.status}`);
+          }
+          const data = await response.json();
+          setClasses(data.data || []);
+          setError(null);
+        } catch (err) {
+          console.error('Error fetching classes:', err);
+          setError('Failed to load classes');
+        } finally {
+          setLoading(false);
+        }
+      };
       fetchClasses(token);
     }
   }, [router]);
-  
-  const fetchClasses = async (token) => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/class/get1', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('token');
-          router.push('/login');
-          return;
-        }
-        throw new Error(`Failed to fetch classes: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setClasses(data.data || []);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching classes:', err);
-      setError('Failed to load classes');
-    } finally {
-      setLoading(false);
-    }
-  };
   
   const fetchLessons = async (classId) => {
     try {
@@ -117,16 +117,6 @@ const LessonLog = () => {
     });
   };
 
-  const navItems = [
-    { name: 'Home', icon: <IconHome />, path: '/dashboard/dashboard', active: false },
-    { name: 'Timetable', icon: <IconCalendar />, path: '/dashboard/time-table', active: false },
-    { name: 'Take Class', icon: <IconTeach />, path: '/lesson-log/1', active: true },
-    { name: 'Class Records', icon: <IconRecords />, path: '/class-response/class-completed', active: false },
-    { name: 'Event Planner', icon: <IconEvent />, path: '/event-leave/event-dashboard', active: false },
-    { name: 'Leave Records', icon: <IconLeave />, path: '/event-leave/leave-dashboard', active: false },
-    { name: 'Ekagrata AI', icon: <IconAI />, path: '/dashboard/chatbot/chatbot', active: false },
-  ];
-
   return (
     <>
       <Head>
@@ -156,13 +146,12 @@ const LessonLog = () => {
           </nav>
           {/* Profile at the bottom */}
           <div style={styles.profileSection}>
-            <a 
-              href="/dashboard/profile" 
-              style={styles.profileLink}
-            >
-              <span style={styles.navIcon}><IconUser /></span>
-              Profile
-            </a>
+            <Link href="/dashboard/profile" legacyBehavior>
+              <a style={styles.profileLink}>
+                <span style={styles.navIcon}><IconUser /></span>
+                Profile
+              </a>
+            </Link>
           </div>
         </div>
 

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { 
@@ -11,6 +12,7 @@ import {
   IconAI, 
   IconUser,
 } from '../../component/icons/1';
+import { getNavItems } from '../../component/navItems';
 
 const Dashboard = () => {
   const router = useRouter();
@@ -26,6 +28,54 @@ const Dashboard = () => {
 
   useEffect(() => {
     // Check if we're in the browser environment before accessing localStorage
+    const fetchTeacherData = async (token) => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem('token');
+            router.push('/login');
+            return;
+          }
+          throw new Error(`Failed to fetch profile: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setTeacher(data);
+      } catch (err) {
+        console.error('Error fetching teacher data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const getUserLocationAndWeather = () => {
+      setWeatherLoading(true);
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            fetchWeatherData(latitude, longitude);
+          },
+          (error) => {
+            console.error('Error getting location:', error);
+            fetchWeatherData(null, null);
+            setWeatherLoading(false);
+          }
+        );
+      } else {
+        console.error('Geolocation is not supported by this browser');
+        fetchWeatherData(null, null);
+        setWeatherLoading(false);
+      }
+    };
+
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -33,24 +83,17 @@ const Dashboard = () => {
         return;
       }
       fetchTeacherData(token);
-      
       // Load todos from localStorage
       const savedTodos = localStorage.getItem('teacherTodos');
       if (savedTodos) {
         setTodos(JSON.parse(savedTodos));
       }
-
       // Load demo data
       loadDemoData();
     }
-    
-    // Update date and time
     updateDateTime();
     const interval = setInterval(updateDateTime, 1000);
-    
-    // Fetch weather data based on user location
     getUserLocationAndWeather();
-    
     return () => clearInterval(interval);
   }, [router]);
   
@@ -68,59 +111,6 @@ const Dashboard = () => {
     setCurrentDateTime(now.toLocaleDateString('en-US', options));
   };
   
-  const fetchTeacherData = async (token) => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/profile', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('token');
-          router.push('/login');
-          return;
-        }
-        throw new Error(`Failed to fetch profile: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setTeacher(data);
-    } catch (err) {
-      console.error('Error fetching teacher data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getUserLocationAndWeather = () => {
-    setWeatherLoading(true);
-    
-    // Check if geolocation is available in the browser
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // Successfully got coordinates
-          const { latitude, longitude } = position.coords;
-          fetchWeatherData(latitude, longitude);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          // Fallback to default weather if location is not available
-          fetchWeatherData(null, null);
-          setWeatherLoading(false);
-        }
-      );
-    } else {
-      console.error('Geolocation is not supported by this browser');
-      // Fallback to default weather
-      fetchWeatherData(null, null);
-      setWeatherLoading(false);
-    }
-  };
-
   const fetchWeatherData = async (latitude, longitude) => {
     try {
       let weatherApiUrl;
@@ -226,15 +216,7 @@ const Dashboard = () => {
     localStorage.setItem('teacherTodos', JSON.stringify(updatedTodos));
   };
 
-  const navItems = [
-    { name: 'Home', icon: <IconHome />, path: '/dashboard/dashboard', active: true },
-    { name: 'Timetable', icon: <IconCalendar />, path: '/dashboard/time-table', active: false },
-    { name: 'Take Class', icon: <IconTeach />, path: '/lesson-log/1', active: false },
-    { name: 'Class Records', icon: <IconRecords />, path: '/class-response/class-completed', active: false },
-    { name: 'Event Planner', icon: <IconEvent />, path: '/event-leave/event-dashboard', active: false },
-    { name: 'Leave Records', icon: <IconLeave />, path: '/event-leave/leave-dashboard', active: false },
-    { name: 'Ekagrata AI', icon: <IconAI />, path: '/dashboard/chatbot/chatbot', active: false },
-  ];
+  const navItems = getNavItems('dashboard');
 
   // Dashboard tabs
   const renderActiveTabContent = () => {
@@ -349,13 +331,12 @@ const Dashboard = () => {
           </nav>
           {/* Profile at the bottom */}
           <div style={styles.profileSection}>
-            <a 
-              href="/dashboard/profile" 
-              style={styles.profileLink}
-            >
-              <span style={styles.navIcon}><IconUser /></span>
-              Profile
-            </a>
+            <Link href="/dashboard/profile" legacyBehavior>
+              <a style={styles.profileLink}>
+                <span style={styles.navIcon}><IconUser /></span>
+                Profile
+              </a>
+            </Link>
           </div>
         </div>
 

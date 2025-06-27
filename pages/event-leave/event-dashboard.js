@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { 
@@ -14,6 +15,7 @@ import {
   IconFilter,
   IconAdd
 } from '../../component/icons/1';
+import { getNavItems } from '../../component/navItems';
 
 const EventDashboard = () => {
   const router = useRouter();
@@ -30,38 +32,35 @@ const EventDashboard = () => {
         router.push('/login');
         return;
       }
+      const fetchEventRecords = async (token) => {
+        try {
+          setLoading(true);
+          const response = await fetch('/api/event/get', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (!response.ok) {
+            if (response.status === 401) {
+              localStorage.removeItem('token');
+              router.push('/login');
+              return;
+            }
+            throw new Error(`Failed to fetch event records: ${response.status}`);
+          }
+          const data = await response.json();
+          setEvents(data.data || []);
+          setError(null);
+        } catch (err) {
+          console.error('Error fetching event records:', err);
+          setError('Failed to load event records');
+        } finally {
+          setLoading(false);
+        }
+      };
       fetchEventRecords(token);
     }
   }, [router]);
-  
-  const fetchEventRecords = async (token) => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/event/get', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('token');
-          router.push('/login');
-          return;
-        }
-        throw new Error(`Failed to fetch event records: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setEvents(data.data || []);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching event records:', err);
-      setError('Failed to load event records');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleNewEventRequest = () => {
     router.push('/event-leave/event');
@@ -97,15 +96,7 @@ const EventDashboard = () => {
     return new Date(dateString).toLocaleString(undefined, options);
   };
 
-  const navItems = [
-    { name: 'Home', icon: <IconHome />, path: '/dashboard/dashboard', active: false },
-    { name: 'Timetable', icon: <IconCalendar />, path: '/dashboard/time-table', active: false },
-    { name: 'Take Class', icon: <IconTeach />, path: '/lesson-log/1', active: false },
-    { name: 'Class Records', icon: <IconRecords />, path: '/class-response/class-completed', active: false },
-    { name: 'Event Planner', icon: <IconEvent />, path: '/event-leave/event-dashboard', active: true },
-    { name: 'Leave Records', icon: <IconLeave />, path: '/event-leave/leave-dashboard', active: false },
-    { name: 'Ekagrata AI', icon: <IconAI />, path: '/dashboard/chatbot/chatbot', active: false },
-  ];
+  const navItems = getNavItems('event-dashboard');
 
   return (
     <>
@@ -136,13 +127,12 @@ const EventDashboard = () => {
           </nav>
           {/* Profile at the bottom */}
           <div style={styles.profileSection}>
-            <a 
-              href="/dashboard/profile" 
-              style={styles.profileLink}
-            >
-              <span style={styles.navIcon}><IconUser /></span>
-              Profile
-            </a>
+            <Link href="/dashboard/profile" legacyBehavior>
+              <a style={styles.profileLink}>
+                <span style={styles.navIcon}><IconUser /></span>
+                Profile
+              </a>
+            </Link>
           </div>
         </div>
 
@@ -216,7 +206,7 @@ const EventDashboard = () => {
                   <div style={styles.errorContainer}>
                     <p style={styles.errorText}>{error}</p>
                     <button 
-                      onClick={() => fetchEventRecords(localStorage.getItem('token'))} 
+                      onClick={() => router.push('/event-leave/event')} 
                       style={styles.retryButton}
                     >
                       Try Again

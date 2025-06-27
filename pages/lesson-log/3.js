@@ -1,4 +1,6 @@
+import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
@@ -14,6 +16,7 @@ import {
   IconUpload,
   IconCheck
 } from '../../component/icons/1';
+import { getNavItems } from '../../component/navItems';
 
 
 const LessonLogSubmitPage = () => {
@@ -31,52 +34,45 @@ const LessonLogSubmitPage = () => {
   const [reason, setReason] = useState('');
 
   useEffect(() => {
-    // Only fetch when we have the required parameters
     if (classId && lessonId) {
+      const fetchLessonData = async () => {
+        try {
+          setLoading(true);
+          const token = localStorage.getItem('token');
+          if (!token) {
+            router.push('/login');
+            return;
+          }
+          const response = await fetch(`/api/lesson/getpdf?lessonId=${lessonId}&classId=${classId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (!response.ok) {
+            if (response.status === 401) {
+              localStorage.removeItem('token');
+              router.push('/login');
+              return;
+            }
+            throw new Error(`Failed to fetch lesson data: ${response.status}`);
+          }
+          const data = await response.json();
+          if (data.success && data.data) {
+            setClassName(data.data.className || '');
+            setLessonName(data.data.lessonName || '');
+          } else {
+            throw new Error(data.message || 'No lesson data found');
+          }
+        } catch (err) {
+          console.error('Error fetching lesson data:', err);
+          setError(err.message || 'Failed to load lesson data');
+        } finally {
+          setLoading(false);
+        }
+      };
       fetchLessonData();
     }
-  }, [classId, lessonId]);
-
-  const fetchLessonData = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-
-      // Fetch lesson data which now includes class name
-      const response = await fetch(`/api/lesson/getpdf?lessonId=${lessonId}&classId=${classId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('token');
-          router.push('/login');
-          return;
-        }
-        throw new Error(`Failed to fetch lesson data: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.success && data.data) {
-        // Set both class name and lesson name from the enhanced API response
-        setClassName(data.data.className || '');
-        setLessonName(data.data.lessonName || '');
-      } else {
-        throw new Error(data.message || 'No lesson data found');
-      }
-    } catch (err) {
-      console.error('Error fetching lesson data:', err);
-      setError(err.message || 'Failed to load lesson data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [router, classId, lessonId]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -154,15 +150,7 @@ const LessonLogSubmitPage = () => {
     }
   };
   
-  const navItems = [
-    { name: 'Home', icon: <IconHome />, path: '/dashboard/dashboard', active: false },
-    { name: 'Timetable', icon: <IconCalendar />, path: '/dashboard/time-table', active: false },
-    { name: 'Take Class', icon: <IconTeach />, path: '/lesson-log/1', active: true },
-    { name: 'Class Records', icon: <IconRecords />, path: '/class-response/class-completed', active: false },
-    { name: 'Event Planner', icon: <IconEvent />, path: '/event-leave/event-dashboard', active: false },
-    { name: 'Leave Records', icon: <IconLeave />, path: '/event-leave/leave-dashboard', active: false },
-    { name: 'Ekagrata AI', icon: <IconAI />, path: '/dashboard/chatbot/chatbot', active: false },
-  ];
+  const navItems = getNavItems('take-class');
 
   return (
     <>
@@ -193,13 +181,12 @@ const LessonLogSubmitPage = () => {
           </nav>
           {/* Profile at the bottom */}
           <div style={styles.profileSection}>
-            <a
-              href="/dashboard/profile"
-              style={styles.profileLink}
-            >
-              <span style={styles.navIcon}><IconUser /></span>
-              Profile
-            </a>
+            <Link href="/dashboard/profile" legacyBehavior>
+              <a style={styles.profileLink}>
+                <span style={styles.navIcon}><IconUser /></span>
+                Profile
+              </a>
+            </Link>
           </div>
         </div>
 
@@ -321,9 +308,11 @@ const LessonLogSubmitPage = () => {
 
                       {imagePreview ? (
                         <div style={styles.previewContainer}>
-                          <img
+                          <Image
                             src={imagePreview}
                             alt="Class Image Preview"
+                            width={400}
+                            height={300}
                             style={styles.imagePreview}
                           />
                         </div>

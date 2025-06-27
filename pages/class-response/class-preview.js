@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
@@ -141,7 +142,7 @@ const ClassPreview = () => {
     };
 
     fetchResponse();
-  }, [router.query.id]);
+  }, [router, router.query.id]);
 
   const handleBack = () => {
     router.push('/dashboard/dashboard');
@@ -233,9 +234,11 @@ const ClassPreview = () => {
 
           {response.imageUrl && (
             <div style={styles.imageContainer}>
-              <img
+              <Image
                 src={response.imageUrl}
                 alt="Class Response"
+                width={400}
+                height={300}
                 style={styles.responseImage}
               />
             </div>

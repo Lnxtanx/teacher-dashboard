@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { getNavItems } from '../../component/navItems';
 
 // SVG Icons as components
 const IconCalendar = () => (
@@ -106,47 +108,44 @@ const LeaveRecords = () => {
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   
+  const navItems = getNavItems('leave-dashboard');
+  
   useEffect(() => {
-    // Check if we're in the browser environment before accessing localStorage
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       if (!token) {
         router.push('/login');
         return;
       }
+      const fetchLeaveRecords = async (token) => {
+        try {
+          setLoading(true);
+          const response = await fetch('/api/leave/fetch', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (!response.ok) {
+            if (response.status === 401) {
+              localStorage.removeItem('token');
+              router.push('/login');
+              return;
+            }
+            throw new Error(`Failed to fetch leave records: ${response.status}`);
+          }
+          const data = await response.json();
+          setLeaves(data.data || []);
+          setError(null);
+        } catch (err) {
+          console.error('Error fetching leave records:', err);
+          setError('Failed to load leave records');
+        } finally {
+          setLoading(false);
+        }
+      };
       fetchLeaveRecords(token);
     }
   }, [router]);
-  
-  const fetchLeaveRecords = async (token) => {
-  try {
-    setLoading(true);
-    const response = await fetch('/api/leave/fetch', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem('token');
-        router.push('/login');
-        return;
-      }
-      throw new Error(`Failed to fetch leave records: ${response.status}`);
-    }
-
-    const data = await response.json();
-    setLeaves(data.data || []); // 👈 Fix here
-    setError(null);
-  } catch (err) {
-    console.error('Error fetching leave records:', err);
-    setError('Failed to load leave records');
-  } finally {
-    setLoading(false);
-  }
-};
-
 
   const handleNewLeaveRequest = () => {
     router.push('/event-leave/leave');
@@ -175,16 +174,6 @@ const LeaveRecords = () => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
-
-  const navItems = [
-    { name: 'Home', icon: <IconHome />, path: '/dashboard/dashboard', active: false },
-    { name: 'Timetable', icon: <IconCalendar />, path: '/dashboard/time-table', active: false },
-    { name: 'Take Class', icon: <IconTeach />, path: '/lesson-log/1', active: false },
-    { name: 'Class Records', icon: <IconRecords />, path: '/class-response/class-completed', active: false },
-    { name: 'Event Planner', icon: <IconEvent />, path: '/event-leave/event-dashboard', active: false },
-    { name: 'Leave Records', icon: <IconLeave />, path: '/event-leave/leave-dashboard', active: true },
-    { name: 'Ekagrata AI', icon: <IconAI />, path: '/dashboard/chatbot/chatbot', active: false },
-  ];
 
   return (
     <>
@@ -215,13 +204,12 @@ const LeaveRecords = () => {
           </nav>
           {/* Profile at the bottom */}
           <div style={styles.profileSection}>
-            <a 
-              href="/dashboard/profile" 
-              style={styles.profileLink}
-            >
-              <span style={styles.navIcon}><IconUser /></span>
-              Profile
-            </a>
+            <Link href="/dashboard/profile" legacyBehavior>
+              <a style={styles.profileLink}>
+                <span style={styles.navIcon}><IconUser /></span>
+                Profile
+              </a>
+            </Link>
           </div>
         </div>
 

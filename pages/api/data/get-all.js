@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { withAuth } from '../../../lib/withAuth';
+// import { withAuth } from '../../../lib/withAuth';
 
 const prisma = new PrismaClient();
 
@@ -9,7 +9,8 @@ async function handler(req, res) {
   }
 
   try {
-    // Fetch all data from all tables    const [schools, teachers, classes, lessonPdfs, timetables, lessonLogs, leaveApplications, eventApplications, classResponses] = await Promise.all([
+    // Fetch all data from all tables
+    const [schools, teachers, classes, lessonPdfs, timetables, lessonLogs, leaveApplications, eventApplications, classResponses] = await Promise.all([
       prisma.School.findMany(),
       prisma.Teacher.findMany(),
       prisma.Class.findMany(),
@@ -23,7 +24,9 @@ async function handler(req, res) {
 
     // Remove sensitive information like passwords
     const sanitizedSchools = schools.map(({ password, ...school }) => school);
-    const sanitizedTeachers = teachers.map(({ password, ...teacher }) => teacher);    // Return all data
+    const sanitizedTeachers = teachers.map(({ password, ...teacher }) => teacher);
+
+    // Return all data
     res.status(200).json({
       schools: sanitizedSchools,
       teachers: sanitizedTeachers,
@@ -43,4 +46,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAuth(handler);
+export default handler;

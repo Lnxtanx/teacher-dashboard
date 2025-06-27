@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
@@ -581,13 +583,12 @@ const ClassRecordsPage = () => {
           </nav>
           {/* Profile at the bottom */}
           <div style={styles.profileSection}>
-            <a
-              href="/dashboard/profile"
-              style={styles.profileLink}
-            >
-              <span style={styles.navIcon} aria-hidden="true"><IconUser /></span>
-              Profile
-            </a>
+            <Link href="/dashboard/profile" legacyBehavior>
+              <a style={styles.profileLink}>
+                <span style={styles.navIcon} aria-hidden="true"><IconUser /></span>
+                Profile
+              </a>
+            </Link>
           </div>
         </div>
 
@@ -706,9 +707,11 @@ const ClassRecordsPage = () => {
 
                           {record.imageUrl && (
                             <div style={styles.imageContainer}>
-                              <img
+                              <Image
                                 src={record.imageUrl}
                                 alt={`Class: ${record.lessonName || 'Unnamed class'}`}
+                                width={400}
+                                height={300}
                                 style={styles.classImage}
                                 onError={handleImageError}
                                 loading="lazy"

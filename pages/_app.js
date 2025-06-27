@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { isAuthenticated } from '../lib/authUtils';
@@ -6,7 +6,7 @@ import '../styles/globals.css';
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
-  const publicPaths = ['/', '/login'];
+  const publicPaths = useMemo(() => ['/', '/login'], []);
 
   useEffect(() => {
     const handleRouteChange = (url) => {
@@ -24,7 +24,7 @@ function MyApp({ Component, pageProps }) {
     return () => {
       router.events.off('routeChangeStart', handleRouteChange);
     };
-  }, [router]);
+  }, [router, publicPaths]);
 
   return (
     <>

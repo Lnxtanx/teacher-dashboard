@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { 
@@ -14,6 +15,7 @@ import {
   IconFilter,
   IconAdd
 } from '../../../component/icons/1';
+import { getNavItems } from '../../../component/navItems';
 
 export default function Chatbot() {
     const router = useRouter();
@@ -174,15 +176,7 @@ export default function Chatbot() {
     };
 
     // Navigation items for sidebar
-    const navItems = [
-        { name: 'Home', icon: <IconHome />, path: '/dashboard/dashboard', active: false },
-        { name: 'Timetable', icon: <IconCalendar />, path: '/dashboard/time-table', active: false },
-        { name: 'Take Class', icon: <IconTeach />, path: '/lesson-log/1', active: false },
-        { name: 'Class Records', icon: <IconRecords />, path: '/class-response/class-completed', active: false },
-        { name: 'Event Planner', icon: <IconEvent />, path: '/event-leave/event-dashboard', active: false },
-        { name: 'Leave Records', icon: <IconLeave />, path: '/event-leave/leave-dashboard', active: false },
-        { name: 'Ekagrata AI', icon: <IconAI />, path: '/dashboard/chatbot/chatbot', active: true },
-    ];
+    const navItems = getNavItems('chatbot');
 
     return (
         <>
@@ -212,10 +206,12 @@ export default function Chatbot() {
                         </ul>
                     </nav>
                     <div style={styles.profileSection}>
-                        <a href="/dashboard/profile" style={styles.profileLink}>
-                            <span style={styles.navIcon}><IconUser /></span>
-                            Profile
-                        </a>
+                        <Link href="/dashboard/profile" legacyBehavior>
+                            <a style={styles.profileLink}>
+                                <span style={styles.navIcon}><IconUser /></span>
+                                Profile
+                            </a>
+                        </Link>
                     </div>
                 </div>
 

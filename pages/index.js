@@ -14,9 +14,7 @@ function Home() {
       <Head>
         <title>Teacher Management System</title>
         <meta name="description" content="Comprehensive teacher management system for educational institutions" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        {/* Font links moved to _document.js as recommended by Next.js */}
       </Head>
 
       <div className="page-container">
